@@ -1,3 +1,6 @@
+name: GitHub Actions - build & test
+run-name: ${{ github.actor }} build & test 🚀
+on: [push]
 jobs:
   build_and_test:
     name: wlocate rust project
