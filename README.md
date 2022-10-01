@@ -4,7 +4,7 @@ Scan Wi-Fi networks and estimate distance to hotspots based on signal strength.
 
 ## Usage
 
-- Just do `cargo run`.
+- Just do `cargo run`. May require root priveleges to execute `iwlist scan` internally.
 - Also you can `cargo test` to run tests.
 
 ## References
