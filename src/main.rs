@@ -1,0 +1,60 @@
+use std::process::Command;
+use std::str;
+
+fn signal_dbm_to_distance_m(dbm: f64, freq_mhz: f64) -> f64 {
+    let fspl = 27.55f64; // Free-Space Path Loss adapted avarage constant for home WiFI routers and following units
+    10f64.powf((fspl - 20f64 * freq_mhz.log10() + dbm.abs()) / 20f64)
+}
+
+#[test]
+fn test_distance_m_from_dbm() {
+    assert_eq!(signal_dbm_to_distance_m(-64., 2417.), 15.639517472147746);
+    assert_eq!(signal_dbm_to_distance_m(-40., 5660.), 0.42138936315637915);
+}
+
+fn signal_dbm_from_networks_scan() {
+    println!("Scanning...");
+
+    let command = Command::new("bash")
+        .args(["-c", "sudo iwlist wlp1s0 scan"])
+        .output()
+        .expect("failed to execute process");
+
+    let output = str::from_utf8(&command.stdout).expect("failed to parse stdout");
+
+    for cell in output.split("          Cell ") {
+        println!("***** ");
+        let mut f_mhz: Option<f64> = None;
+        let mut s_dbm: Option<f64> = None;
+        // println!("{}", cell);
+        if let Some(i) = cell.find("ESSID:\"") {
+            if let Some(j) = &cell[i+7..].find("\"") {
+                println!("ESSID: {}", &cell[i+7..i+7+j]);
+            }
+        }
+        if let Some(i) = cell.find("Address: ") {
+            if let Some(j) = &cell[i+9..].find(char::is_whitespace) {
+                println!("BSSID: {}", &cell[i+9..i+9+j]);
+            }
+        }
+        if let Some(i) = cell.find("Frequency:") {
+            if let Some(j) = &cell[i+10..].find(char::is_whitespace) {
+                f_mhz = Some(cell[i+10..i+10+j].parse::<f64>().unwrap() * 1000.);
+                println!("Freq:  {}", f_mhz.unwrap());
+            }
+        }
+        if let Some(i) = cell.find("Signal level=") {
+            if let Some(j) = &cell[i+13..].find(char::is_whitespace) {
+                s_dbm = Some(cell[i+13..i+13+j].parse::<f64>().unwrap());
+                println!("dBm:   {}", s_dbm.unwrap());
+            }
+        }
+        if let (Some(f), Some(s)) = (f_mhz, s_dbm) {
+            println!("dist:  {}", signal_dbm_to_distance_m(s, f));
+        }
+    }
+}
+
+fn main() {
+    signal_dbm_from_networks_scan();
+}
