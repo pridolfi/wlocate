@@ -2,6 +2,11 @@
 
 Scan Wi-Fi networks and estimate distances to hotspots based on signal strength.
 
+## Usage
+
+- Just do `cargo run`.
+- Also you can `cargo test` to run tests.
+
 ## References
 
 - https://gist.github.com/cryptolok/516471ce35a9851197b204853c6de080
