@@ -12,6 +12,25 @@ fn test_distance_m_from_dbm() {
     assert_eq!(signal_dbm_to_distance_m(-40., 5660.), 0.42138936315637915);
 }
 
+fn field_from_str<'a>(text: &'a str, field_str: &str, end_str: &str) -> Option<&'a str> {
+    let field_len = field_str.len();
+    if let Some(i) = text.find(field_str) {
+        if let Some(j) = &text[i+field_len..].find(end_str) {
+            Some(&text[i+field_len..i+field_len+j])
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+#[test]
+fn test_field_from_str() {
+    assert_eq!(field_from_str("bla sarasa\nkey: value \npepe = paco;", "key: ", " \n"), Some("value"));
+    assert_eq!(field_from_str("bla sarasa\nkey: value \npepe = paco;", "pepe = ", ";"), Some("paco"));
+}
+
 fn signal_dbm_from_networks_scan() {
     println!("Scanning...");
 
@@ -27,27 +46,19 @@ fn signal_dbm_from_networks_scan() {
         let mut f_mhz: Option<f64> = None;
         let mut s_dbm: Option<f64> = None;
         // println!("{}", cell);
-        if let Some(i) = cell.find("ESSID:\"") {
-            if let Some(j) = &cell[i+7..].find("\"") {
-                println!("ESSID: {}", &cell[i+7..i+7+j]);
-            }
+        if let Some(essid) = field_from_str(cell, "ESSID:\"", "\"") {
+            println!("ESSID: {}", essid);
         }
-        if let Some(i) = cell.find("Address: ") {
-            if let Some(j) = &cell[i+9..].find(char::is_whitespace) {
-                println!("BSSID: {}", &cell[i+9..i+9+j]);
-            }
+        if let Some(bssid) = field_from_str(cell, "Address: ", "\n") {
+            println!("BSSID: {}", bssid);
         }
-        if let Some(i) = cell.find("Frequency:") {
-            if let Some(j) = &cell[i+10..].find(char::is_whitespace) {
-                f_mhz = Some(cell[i+10..i+10+j].parse::<f64>().unwrap() * 1000.);
-                println!("Freq:  {}", f_mhz.unwrap());
-            }
+        if let Some(freq) = field_from_str(cell, "Frequency:", " ") {
+            f_mhz = Some(freq.parse::<f64>().unwrap() * 1000.);
+            println!("Freq:  {}", f_mhz.unwrap());
         }
-        if let Some(i) = cell.find("Signal level=") {
-            if let Some(j) = &cell[i+13..].find(char::is_whitespace) {
-                s_dbm = Some(cell[i+13..i+13+j].parse::<f64>().unwrap());
-                println!("dBm:   {}", s_dbm.unwrap());
-            }
+        if let Some(signal) = field_from_str(cell, "Signal level=", " ") {
+            s_dbm = Some(signal.parse::<f64>().unwrap());
+            println!("dBm:   {}", s_dbm.unwrap());
         }
         if let (Some(f), Some(s)) = (f_mhz, s_dbm) {
             println!("dist:  {}", signal_dbm_to_distance_m(s, f));
