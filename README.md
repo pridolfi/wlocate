@@ -1,6 +1,6 @@
 # wlocate
 
-Scan Wi-Fi networks and estimate distances to hotspots based on signal strength.
+Scan Wi-Fi networks and estimate distance to hotspots based on signal strength.
 
 ## Usage
 
