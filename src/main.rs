@@ -1,6 +1,8 @@
 use std::process::Command;
 use std::str;
 
+use nalgebra::{Matrix3, distance, Point3};
+
 fn signal_dbm_to_distance_m(dbm: f64, freq_mhz: f64) -> f64 {
     let fspl = 27.55f64; // Free-Space Path Loss adapted avarage constant for home WiFI routers and following units
     10f64.powf((fspl - 20f64 * freq_mhz.log10() + dbm.abs()) / 20f64)
@@ -16,13 +18,10 @@ fn field_from_str<'a>(text: &'a str, field_str: &str, end_str: &str) -> Option<&
     let field_len = field_str.len();
     if let Some(i) = text.find(field_str) {
         if let Some(j) = &text[i+field_len..].find(end_str) {
-            Some(&text[i+field_len..i+field_len+j])
-        } else {
-            None
+            return Some(&text[i+field_len..i+field_len+j])
         }
-    } else {
-        None
     }
+    None
 }
 
 #[test]
@@ -66,6 +65,27 @@ fn signal_dbm_from_networks_scan() {
     });
 }
 
+#[test]
+fn test_distance() {
+    let p1 = Point3::new(7., 4., 3.);
+    let p2 = Point3::new(17., 6., 2.);
+    assert_eq!(distance(&p1, &p2), 10.246950765959598);
+}
+
+fn play_with_nalgebra() {
+    let m = Matrix3::new(
+        1., -2., 3.,
+       -4.,  5., 6.,
+        7.,  8., 9.);    
+   println!("{}", m);
+   println!("{}", m.transpose());
+   println!("{}", m.try_inverse().unwrap());
+   let p1 = Point3::new(7., 4., 3.);
+   let p2 = Point3::new(17., 6., 2.);
+   println!("{}", distance(&p1, &p2));
+}
+
 fn main() {
     signal_dbm_from_networks_scan();
+    play_with_nalgebra();
 }
