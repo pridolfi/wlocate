@@ -2,15 +2,6 @@ name: GitHub Actions - build & test
 run-name: build & test by ${{ github.actor }} 🚀
 on: [push]
 jobs:
-  build:
-    name: build wlocate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - run: cargo build --release --all-features
   test:
     name: test wlocate
     runs-on: ubuntu-latest
