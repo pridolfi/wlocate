@@ -41,7 +41,7 @@ fn signal_dbm_from_networks_scan() {
 
     let output = str::from_utf8(&command.stdout).expect("failed to parse stdout");
 
-    for cell in output.split("          Cell ") {
+    output.split("          Cell ").for_each(|cell| {
         println!("***** ");
         let mut f_mhz: Option<f64> = None;
         let mut s_dbm: Option<f64> = None;
@@ -63,7 +63,7 @@ fn signal_dbm_from_networks_scan() {
         if let (Some(f), Some(s)) = (f_mhz, s_dbm) {
             println!("dist:  {}", signal_dbm_to_distance_m(s, f));
         }
-    }
+    });
 }
 
 fn main() {
