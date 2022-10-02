@@ -1,9 +1,9 @@
-name: GitHub Actions - build & test
-run-name: build & test by ${{ github.actor }} 🚀
+name: test
+run-name: run tests for wlocate
 on: [push]
 jobs:
   test:
-    name: test wlocate
+    name: test job
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
