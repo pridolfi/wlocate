@@ -89,7 +89,7 @@ fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
         row[0] = (distances[0].powi(2) - distances[i + 1].powi(2) + dist2ref0[i].powi(2)) / 2.;
     }
     let a_t = a.transpose();
-    let x = (a_t.clone() * a).try_inverse().unwrap() * a_t * b;
+    let x = (&a_t * a).try_inverse().unwrap() * a_t * b;
     Point3::new(
         x[0] + references[0].x,
         x[1] + references[0].y,
