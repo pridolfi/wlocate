@@ -1,7 +1,7 @@
 use std::{process::Command};
 use std::str;
 
-use nalgebra::{distance, Matrix3, Point3, DMatrix};
+use nalgebra::{distance, Point3, DMatrix};
 
 fn signal_dbm_to_distance_m(dbm: f64, freq_mhz: f64) -> f64 {
     let fspl = 27.55f64; // Free-Space Path Loss adapted avarage constant for home WiFI routers and following units
@@ -40,7 +40,7 @@ fn signal_dbm_from_networks_scan() {
     println!("Scanning...");
 
     let command = Command::new("bash")
-        .args(["-c", "sudo iwlist wlp1s0 scan"])
+        .args(["-c", "sudo iwlist scan"])
         .output()
         .expect("failed to execute process");
 
@@ -71,23 +71,6 @@ fn signal_dbm_from_networks_scan() {
     });
 }
 
-#[test]
-fn test_distance() {
-    let p1 = Point3::new(7., 4., 3.);
-    let p2 = Point3::new(17., 6., 2.);
-    assert_eq!(distance(&p1, &p2), 10.246950765959598);
-}
-
-fn play_with_nalgebra() {
-    let m = Matrix3::new(1., -2., 3., -4., 5., 6., 7., 8., 9.);
-    println!("{}", m);
-    println!("{}", m.transpose());
-    println!("{}", m.try_inverse().unwrap());
-    let p1 = Point3::new(7., 4., 3.);
-    let p2 = Point3::new(17., 6., 2.);
-    println!("{}", distance(&p1, &p2));
-}
-
 fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
     let n = references.len()-1;
     assert_eq!(references.len(), distances.len());
@@ -95,46 +78,44 @@ fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
     for (i, v) in dist2ref0.iter_mut().enumerate() {
         *v = distance(&references[i+1], &references[0]);
     }
-    println!("dist2ref0 {:?}", dist2ref0);
-
     let mut a = DMatrix::<f64>::zeros(n, 3);
     for (i, mut row) in a.row_iter_mut().enumerate() {
         row[0] = references[i+1].x - references[0].x;
         row[1] = references[i+1].y - references[0].y;
         row[2] = references[i+1].z - references[0].z;
     }
-    println!("a {}", a);
-
     let mut b = DMatrix::<f64>::zeros(n, 1);
     for (i, mut row) in b.row_iter_mut().enumerate() {
         row[0] = (distances[0].powi(2) - distances[i+1].powi(2) + dist2ref0[i].powi(2))/2.;
     }
-    println!("b {}", b);
-
     let a_t = a.transpose();
-    let x = (a.transpose() * a).try_inverse().unwrap() * a_t * b;
-    println!("x {}", x);
-
+    let x = (a_t.clone() * a).try_inverse().unwrap() * a_t * b;
     Point3::new(x[0]+references[0].x, x[1]+references[0].y, x[2]+references[0].z)
 }
 
-fn main() {
-    signal_dbm_from_networks_scan();
-    play_with_nalgebra();
-    let p = Point3::new(-1.,1.3,-3.);
-    let mut references: Vec<Point3<f64>> = Vec::new();
-    references.push(Point3::new(0.,0.,0.));
-    references.push(Point3::new(3.,0.,0.));
-    references.push(Point3::new(0.,3.,0.));
-    references.push(Point3::new(3.,3.,0.));
-    references.push(Point3::new(0.,0.,3.));
-    references.push(Point3::new(3.,0.,3.));
-    references.push(Point3::new(0.,3.,3.));
-    references.push(Point3::new(3.,3.,3.));
+#[test]
+fn test_trilaterate() {
+    let p = Point3::new(-1.,1.3,3.);
+    let references: Vec<Point3<f64>> = Vec::from([
+        Point3::new(0.,0.,0.),
+        Point3::new(3.,0.,0.),
+        Point3::new(0.,3.,0.),
+        Point3::new(3.,3.,0.),
+        Point3::new(0.,0.,3.),
+        Point3::new(3.,0.,3.),
+        Point3::new(0.,3.,3.),
+        Point3::new(3.,3.,3.)
+    ]);
     let mut distances = vec![0.; references.len()];
     for (i, d) in distances.iter_mut().enumerate() {
         *d = distance(&references[i], &p);
     }
-    println!("distances {:?}", distances);
-    println!("trilat {:?}", trilaterate(&references, &distances));
+    let p_new = trilaterate(&references, &distances);
+    assert_eq!(p.x, (p_new.x * 10000.).round() / 10000.);
+    assert_eq!(p.y, (p_new.y * 10000.).round() / 10000.);
+    assert_eq!(p.z, (p_new.z * 10000.).round() / 10000.);
+}
+
+fn main() {
+    signal_dbm_from_networks_scan();
 }
