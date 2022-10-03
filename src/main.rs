@@ -1,7 +1,7 @@
-use std::process::Command;
+use std::{process::Command};
 use std::str;
 
-use nalgebra::{Matrix3, distance, Point3};
+use nalgebra::{distance, Matrix3, Point3, DMatrix};
 
 fn signal_dbm_to_distance_m(dbm: f64, freq_mhz: f64) -> f64 {
     let fspl = 27.55f64; // Free-Space Path Loss adapted avarage constant for home WiFI routers and following units
@@ -17,8 +17,8 @@ fn test_distance_m_from_dbm() {
 fn field_from_str<'a>(text: &'a str, field_str: &str, end_str: &str) -> Option<&'a str> {
     let field_len = field_str.len();
     if let Some(i) = text.find(field_str) {
-        if let Some(j) = &text[i+field_len..].find(end_str) {
-            return Some(&text[i+field_len..i+field_len+j])
+        if let Some(j) = &text[i + field_len..].find(end_str) {
+            return Some(&text[i + field_len..i + field_len + j]);
         }
     }
     None
@@ -26,8 +26,14 @@ fn field_from_str<'a>(text: &'a str, field_str: &str, end_str: &str) -> Option<&
 
 #[test]
 fn test_field_from_str() {
-    assert_eq!(field_from_str("bla sarasa\nkey: value \npepe = paco;", "key: ", " \n"), Some("value"));
-    assert_eq!(field_from_str("bla sarasa\nkey: value \npepe = paco;", "pepe = ", ";"), Some("paco"));
+    assert_eq!(
+        field_from_str("bla sarasa\nkey: value \npepe = paco;", "key: ", " \n"),
+        Some("value")
+    );
+    assert_eq!(
+        field_from_str("bla sarasa\nkey: value \npepe = paco;", "pepe = ", ";"),
+        Some("paco")
+    );
 }
 
 fn signal_dbm_from_networks_scan() {
@@ -73,19 +79,50 @@ fn test_distance() {
 }
 
 fn play_with_nalgebra() {
-    let m = Matrix3::new(
-        1., -2., 3.,
-       -4.,  5., 6.,
-        7.,  8., 9.);    
-   println!("{}", m);
-   println!("{}", m.transpose());
-   println!("{}", m.try_inverse().unwrap());
-   let p1 = Point3::new(7., 4., 3.);
-   let p2 = Point3::new(17., 6., 2.);
-   println!("{}", distance(&p1, &p2));
+    let m = Matrix3::new(1., -2., 3., -4., 5., 6., 7., 8., 9.);
+    println!("{}", m);
+    println!("{}", m.transpose());
+    println!("{}", m.try_inverse().unwrap());
+    let p1 = Point3::new(7., 4., 3.);
+    let p2 = Point3::new(17., 6., 2.);
+    println!("{}", distance(&p1, &p2));
+}
+
+fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
+
+    assert_eq!(references.len(), distances.len());
+    let mut dist2ref0 = vec![0.; references.len()-1];
+    for (i, v) in dist2ref0.iter_mut().enumerate() {
+        *v = distance(&references[i+1], &references[0]);
+    }
+    print!("dist2ref0 {:?}", dist2ref0);
+    
+    
+    let matrixA = DMatrix::<f64>::zeros(references.len()-1, 3);
+
+    
+    
+    
+    Point3::new(0., 0., 0.)
 }
 
 fn main() {
     signal_dbm_from_networks_scan();
     play_with_nalgebra();
+    let p = Point3::new(1.5,1.5,1.5);
+    let mut references: Vec<Point3<f64>> = Vec::new();
+    references.push(Point3::new(0.,0.,0.));
+    references.push(Point3::new(3.,0.,0.));
+    references.push(Point3::new(0.,3.,0.));
+    references.push(Point3::new(3.,3.,0.));
+    references.push(Point3::new(0.,0.,3.));
+    references.push(Point3::new(3.,0.,3.));
+    references.push(Point3::new(0.,3.,3.));
+    references.push(Point3::new(3.,3.,3.));
+    let mut distances = vec![0.; references.len()];
+    for (i, d) in distances.iter_mut().enumerate() {
+        *d = distance(&references[i], &p);
+    }
+    println!("{:?}", distances);
+    println!("{:?}", trilaterate(&references, &distances));
 }
