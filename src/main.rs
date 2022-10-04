@@ -71,7 +71,7 @@ fn signal_dbm_from_networks_scan() {
     });
 }
 
-fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
+fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Option<Point3<f64>> {
     let n = references.len() - 1;
     assert_eq!(references.len(), distances.len());
     let mut dist2ref0 = vec![0.; n];
@@ -89,12 +89,16 @@ fn trilaterate(references: &[Point3<f64>], distances: &[f64]) -> Point3<f64> {
         row[0] = (distances[0].powi(2) - distances[i + 1].powi(2) + dist2ref0[i].powi(2)) / 2.;
     }
     let a_t = a.transpose();
-    let x = (&a_t * a).try_inverse().unwrap() * a_t * b;
-    Point3::new(
-        x[0] + references[0].x,
-        x[1] + references[0].y,
-        x[2] + references[0].z,
-    )
+    if let Some(inv) = (&a_t * a).try_inverse() {
+        let x = inv * a_t * b;
+        Some(Point3::new(
+            x[0] + references[0].x,
+            x[1] + references[0].y,
+            x[2] + references[0].z,
+        ))
+    } else {
+        None
+    }
 }
 
 #[test]
@@ -114,10 +118,15 @@ fn test_trilaterate() {
     for (i, d) in distances.iter_mut().enumerate() {
         *d = distance(&references[i], &p);
     }
-    let p_new = trilaterate(&references, &distances);
-    assert_eq!(p.x, (p_new.x * 10000.).round() / 10000.);
-    assert_eq!(p.y, (p_new.y * 10000.).round() / 10000.);
-    assert_eq!(p.z, (p_new.z * 10000.).round() / 10000.);
+    if let Some(p_new) = trilaterate(&references, &distances) {
+        assert_eq!(p.x, (p_new.x * 10000.).round() / 10000.);
+        assert_eq!(p.y, (p_new.y * 10000.).round() / 10000.);
+        assert_eq!(p.z, (p_new.z * 10000.).round() / 10000.);    
+    }
+    else {
+        println!("Trilateration failed.");
+        assert!(false);
+    }
 }
 
 fn main() {
